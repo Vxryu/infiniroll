@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>InfiniRoll</title>
+<meta name="description" content="Roll a number from 0 to 1,000,000, collect 233 badges and climb the leaderboard.">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#faf8f6;--card:#fff;--line:#ece7e2;--txt:#1c1917;--dim:#8a817a;--or:#f59e0b;--or2:#9a3412;--blue:#3b82f6}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:Inter,sans-serif;min-height:100vh}
+.top{display:flex;align-items:center;gap:18px;padding:14px 20px;flex-wrap:wrap}
+.brand{font:800 20px 'JetBrains Mono',monospace;letter-spacing:1px}
+.brand span{color:var(--or)}
+.top .lnk{font-size:12px;font-weight:600;color:var(--dim);cursor:pointer;text-transform:uppercase;letter-spacing:.5px;background:none;border:none}
+.top .lnk.on{color:var(--txt)}
+.main{max-width:660px;margin:0 auto;padding:20px 16px 60px;display:flex;flex-direction:column;align-items:center}
+.numbox{border:3px solid #fdba74;background:linear-gradient(#fff7ed,#ffedd5);border-radius:16px;padding:18px 34px;min-width:220px;text-align:center;box-shadow:0 6px 30px #fb923c33;transition:border-color .3s,box-shadow .3s}
+.num{font:800 64px 'JetBrains Mono',monospace;color:var(--or2);letter-spacing:2px;line-height:1.1;word-break:break-all}
+.numbox.spin .num{color:#d6c3b3}
+.tierline{margin-top:16px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:600}
+.tag{border:1.5px solid currentColor;border-radius:5px;padding:3px 9px;font-size:13px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+.dot{width:4px;height:4px;border-radius:50%;background:#bbb}
+.ep{margin-top:14px;font:800 16px 'JetBrains Mono',monospace;color:#c2410c;border:1.5px solid #fdba74;background:#fff7ed;border-radius:999px;padding:6px 14px}
+.life{margin-top:10px;font:700 15px 'JetBrains Mono',monospace;text-align:center}
+.life small{display:block;font:500 12px Inter;color:var(--dim);text-transform:uppercase;margin-top:2px}
+.actions{display:flex;gap:10px;align-items:center;margin-top:18px;flex-wrap:wrap;justify-content:center}
+.btn{font:700 14px Inter;border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:10px 16px;cursor:pointer;text-transform:uppercase;letter-spacing:.5px;color:var(--txt)}
+.btn:active{transform:scale(.97)}
+.btn.roll{background:linear-gradient(135deg,#fb923c,#ea580c);color:#fff;border:none;padding:13px 30px;font-size:16px;box-shadow:0 4px 18px #ea580c44}
+.btn.roll:disabled{opacity:.5}
+.btn.on{background:#16a34a;color:#fff;border-color:#16a34a}
+.hint{font-size:12px;color:var(--dim);margin-top:10px}
+h3{margin-top:34px;font-size:20px;font-weight:800;text-transform:uppercase;text-align:center}
+.h3s{font-size:12px;font-weight:600;text-transform:uppercase;color:#555;text-align:center;margin-top:2px}
+.list{width:100%;margin-top:14px;display:flex;flex-direction:column;gap:12px}
+.bcard{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;box-shadow:0 1px 3px #0000000a;animation:in .3s both}
+@keyframes in{from{opacity:0;transform:translateY(6px)}}
+.bhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.bname{font-weight:700;font-size:14px;text-transform:uppercase}
+.rar{font-size:11px;font-weight:700;border:1.5px solid currentColor;border-radius:5px;padding:2px 6px;text-transform:uppercase}
+.bep{margin-left:auto;font:700 12px 'JetBrains Mono',monospace;color:#c2410c;background:#fffbeb;border:1.5px solid #fde68a;border-radius:999px;padding:3px 9px}
+.bdesc{font-size:12px;color:var(--dim);text-transform:uppercase;margin-top:6px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.digits{display:flex;gap:4px;margin-top:10px;flex-wrap:wrap}
+.d{width:20px;height:24px;border-radius:4px;display:flex;align-items:center;justify-content:center;font:700 12px 'JetBrains Mono',monospace;color:#bbb;background:#f5f5f4}
+.d.a{background:#93c5fd;border:1.5px solid #3b82f6;color:#1e3a8a}
+.d.b{background:#86efac;border:1.5px solid #22c55e;color:#14532d}
+.empty{color:var(--dim);font-size:14px;text-align:center;padding:20px}
+.row{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.row .rk{font:800 14px 'JetBrains Mono',monospace;width:28px;color:var(--dim)}
+.row .rn{font:800 18px 'JetBrains Mono',monospace;color:var(--or2);flex:1;word-break:break-all}
+.row .re{font:700 13px 'JetBrains Mono',monospace;color:#c2410c}
+.coll{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;width:100%;margin-top:14px}
+.ci{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:12px}
+.ci b{display:block;font-size:13px;text-transform:uppercase;margin-bottom:4px}
+.ci.lock{opacity:.4}
+.ci .meta{display:flex;justify-content:space-between;color:var(--dim);margin-top:6px;font-family:'JetBrains Mono',monospace}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1c1917;color:#fff;padding:10px 18px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:9}
+.toast.show{opacity:1}
+.calib{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;z-index:8;font-weight:600;color:var(--dim)}
+.rainbow{background:linear-gradient(90deg,#ef4444,#f59e0b,#22c55e,#3b82f6,#a855f7,#ef4444);background-size:300%;-webkit-background-clip:text;background-clip:text;color:transparent!important;border-color:#a855f7!important;animation:rb 2s linear infinite}
+@keyframes rb{to{background-position:300%}}
+.pop{animation:pop .45s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop{0%{transform:scale(.85)}100%{transform:scale(1)}}
+.cut{position:fixed;inset:0;z-index:10;display:none;flex-direction:column;align-items:center;justify-content:center;background:#0c0a09f0;color:#fff;text-align:center;cursor:pointer}
+.cut.show{display:flex;animation:fade .3s}
+@keyframes fade{from{opacity:0}}
+.cutTier{font:800 22px Inter;letter-spacing:6px;text-transform:uppercase}
+.cutNum{font:800 min(18vw,120px) 'JetBrains Mono',monospace;margin-top:10px;animation:zoom 1.1s cubic-bezier(.2,1.5,.4,1)}
+@keyframes zoom{0%{transform:scale(.2);opacity:0;filter:blur(12px)}100%{transform:none;opacity:1;filter:none}}
+.cutSub{font:600 16px 'JetBrains Mono',monospace;margin-top:14px;opacity:.85}
+.cutHint{margin-top:34px;font-size:12px;opacity:.5}
+.rarity{background:#1c1917;color:#e7e5e4;border-radius:16px;padding:26px 28px}
+.rarity h2{font-size:26px;font-weight:800;color:#fff;margin-bottom:18px}
+.rarity h4{font-size:15px;font-weight:800;text-transform:uppercase;color:#fff;margin-bottom:8px}
+.rarity p{font-size:14px;line-height:1.5;color:#d6d3d1;margin-bottom:14px}
+.rgrid{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+@media(max-width:600px){.rgrid{grid-template-columns:1fr}}
+.rt{display:grid;grid-template-columns:110px 1fr;row-gap:12px;font-size:13px}
+.rt .n{font-weight:600;text-transform:uppercase}
+.rt .v{color:#a8a29e;font-size:11px;text-transform:uppercase;align-self:center}
+.rarity .note{margin:22px 0 0;font-size:12px;color:#a8a29e}
+.rarity .note b{color:#fff}
+.lb{width:100%;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.lbtabs{display:flex;border-bottom:1px solid var(--line)}
+.lbtabs button{flex:1;background:none;border:none;padding:13px 6px;font:700 12px Inter;letter-spacing:.5px;text-transform:uppercase;color:#a8a29e;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.lbtabs button.on{color:var(--txt);border-bottom-color:var(--txt)}
+.lbme{padding:10px 16px;font-size:13px;color:var(--dim);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.lbme:empty{display:none}
+.lbme .btn{padding:6px 12px;font-size:12px}
+.lrow{display:grid;grid-template-columns:44px 1fr auto auto auto;align-items:center;gap:0 14px;padding:12px 16px;border-bottom:1px solid #f1eeeb}
+.lrow.me{background:#fdf4ff}
+.lrank{font:800 13px 'JetBrains Mono',monospace;text-align:left}
+.lrank.medal{font-size:20px}
+.lname{font:800 16px Inter;text-transform:uppercase;letter-spacing:.3px;word-break:break-all}
+.lname .em{margin-left:6px;font-size:15px}
+.lmotto{grid-column:2/-1;font:500 13px 'JetBrains Mono',monospace;color:#57534e;margin-top:6px;word-break:break-word}
+.lnum{font:800 22px 'JetBrains Mono',monospace;color:#111;border:2px solid #f9a8d4;border-radius:8px;padding:4px 10px;background:linear-gradient(135deg,#fff,#e0f2fe);box-shadow:0 0 14px #f472b655}
+.lep{font:500 13px 'JetBrains Mono',monospace;color:#a8a29e;white-space:nowrap}
+.llike{font:500 12px 'JetBrains Mono',monospace;color:#a8a29e;background:none;border:none;cursor:pointer;white-space:nowrap;padding:4px}
+.llike.on{color:#ec4899}
+.llike:disabled{cursor:default}
+@media(max-width:560px){.lrow{grid-template-columns:34px 1fr auto;}.lep{grid-column:2}.llike{grid-column:3}}
+.modal{position:fixed;inset:0;background:#0007;display:none;align-items:center;justify-content:center;z-index:12;padding:16px}
+.modal.show{display:flex}
+.mbox{background:#fff;border-radius:14px;padding:22px;width:100%;max-width:400px}
+.mbox label{display:block;font:600 13px Inter;margin-top:12px}
+.mbox input{display:block;width:100%;margin-top:6px;padding:10px 12px;border:1.5px solid var(--line);border-radius:8px;font:500 15px Inter}
+.colors{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.colors button{width:28px;height:28px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer}
+.colors button.on{box-shadow:0 0 0 2px #111}
+.merr{color:#dc2626;font-size:13px;margin-top:10px;min-height:1em}
+.acct{margin-left:auto;display:flex;align-items:center;gap:8px}
+.acct .btn{padding:7px 12px;font-size:12px}
+.acct .who{font:800 13px Inter;text-transform:uppercase;cursor:pointer;background:none;border:none}
+.atabs{display:flex;gap:6px;margin-bottom:6px}
+.atabs button{flex:1;padding:9px;border:1.5px solid var(--line);background:#fff;border-radius:8px;font:700 13px Inter;cursor:pointer;color:var(--dim)}
+.atabs button.on{border-color:#111;color:#111}
+.guest{font-size:12px;color:var(--dim);margin-top:8px;text-align:center}
+.guest a{color:#ea580c;font-weight:700;cursor:pointer;text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="calib" id="calib"><div style="font:800 22px 'JetBrains Mono'">Infini<span style="color:#f59e0b">Roll</span></div><div>Loading…</div></div>
+
+<div class="top">
+  <div class="brand">Infini<span>Roll</span> ∞</div>
+  <button class="lnk on" data-tab="roll">🎲 Roll</button>
+  <button class="lnk" data-tab="board">🏆 Leaderboard</button>
+  <button class="lnk" data-tab="coll">📖 Badges <span id="collCount"></span></button>
+  <button class="lnk" data-tab="rarity">ℹ️ Rarity</button>
+  <div class="acct" id="acct"></div>
+</div>
+
+<div class="main">
+  <!-- ROLL -->
+  <section id="tab-roll" style="width:100%;display:flex;flex-direction:column;align-items:center">
+    <div class="numbox" id="numbox"><div class="num" id="num">?</div></div>
+    <div class="tierline" id="tierline"><span class="tag" style="color:#aaa">Ready</span><span class="dot"></span><span style="color:var(--dim)">0 to 1,000,000</span></div>
+    <div class="ep" id="ep">0 EP</div>
+    <div class="life"><span id="life">0</span> EP<small>Your lifetime EP · <span id="rolls">0</span> rolls</small></div>
+    <div class="actions">
+      <button class="btn roll" id="rollBtn" disabled>🎲 Roll</button>
+      <button class="btn" id="shareBtn">↗ Share</button>
+    </div>
+    <div class="hint">Space = roll · no cooldown</div>
+    <div class="guest" id="guestNote"></div>
+
+    <h3>Badge breakdown</h3>
+    <div class="h3s" id="bcount">Make your first roll</div>
+    <div class="list" id="blist"></div>
+  </section>
+
+  <!-- BOARD -->
+  <section id="tab-board" style="width:100%;display:none">
+    <div class="lb">
+      <div class="lbtabs" id="lbtabs"><button data-v="day" class="on">Today</button><button data-v="week">This week</button><button data-v="all">All-time</button><button data-v="badges">Badges</button></div>
+      <div class="lbme" id="lbme"></div>
+      <div id="lbrows"><div class="empty">Loading leaderboard…</div></div>
+    </div>
+  </section>
+
+  <!-- RARITY -->
+  <section id="tab-rarity" style="width:100%;display:none">
+    <div class="rarity">
+      <h2>Rarity</h2>
+      <div class="rgrid">
+        <div>
+          <h4>Number rarity</h4>
+          <p>Your roll's overall rarity is based on your total EP compared to all possible rolls. It shows how your roll ranks:</p>
+          <div class="rt" id="rtNum"></div>
+        </div>
+        <div>
+          <h4>Badge rarity</h4>
+          <p>Each badge has a rarity based on how likely you are to roll it. Rarer badges are worth more EP. Badge rarity is determined by probability:</p>
+          <div class="rt" id="rtBadge"></div>
+        </div>
+      </div>
+      <p class="note">Numbers range from 0 to 1,000,000. Every number has the same odds, except <b>0</b> (1 in 25,000,000) and <b>1,000,000</b> (1 in 100,000,000). A badge is worth about 100 ÷ its probability in EP.</p>
+    </div>
+  </section>
+
+  <!-- COLLECTION -->
+  <section id="tab-coll" style="width:100%;display:none">
+    <h3 style="margin-top:0">Badge collection</h3>
+    <div class="h3s" id="collSub"></div>
+    <div class="coll" id="coll"></div>
+  </section>
+</div>
+<div class="cut" id="cut"><div class="cutTier" id="cutTier"></div><div class="cutNum" id="cutNum"></div><div class="cutSub" id="cutSub"></div><div class="cutHint">click to continue</div></div>
+<div class="modal" id="authModal"><form class="mbox" id="authForm" autocomplete="on">
+  <div class="atabs"><button type="button" data-m="login" class="on">Log in</button><button type="button" data-m="signup">Sign up</button></div>
+  <label>Username<input id="aUser" name="username" maxlength="16" required autocomplete="username" placeholder="3–16 letters, numbers or _"></label>
+  <label>Password<input id="aPass" name="password" type="password" minlength="6" maxlength="100" required autocomplete="current-password" placeholder="At least 6 characters"></label>
+  <label id="aPass2Wrap" style="display:none">Confirm password<input id="aPass2" type="password" maxlength="100" autocomplete="new-password"></label>
+  <div class="merr" id="aErr"></div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" class="btn" data-close>Cancel</button><button type="submit" class="btn roll" id="aSubmit" style="padding:10px 18px;font-size:14px">Log in</button></div>
+</form></div>
+<div class="modal" id="acctModal"><div class="mbox">
+  <h3 style="margin:0 0 2px;text-align:left" id="acName"></h3>
+  <div class="h3s" style="text-align:left" id="acStats"></div>
+  <form id="profForm">
+    <label>Motto <span style="color:var(--dim)">(optional)</span><input id="pMotto" maxlength="48" placeholder="e.g. trinity is all" autocomplete="off"></label>
+    <label>Emojis <span style="color:var(--dim)">(up to 4)</span><input id="pEmoji" maxlength="12" placeholder="🍀🔥" autocomplete="off"></label>
+    <label>Name color</label><div class="colors" id="pColors"></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:12px"><button type="submit" class="btn roll" style="padding:9px 16px;font-size:13px">Save profile</button></div>
+  </form>
+  <form id="pwForm" style="border-top:1px solid var(--line);margin-top:16px;padding-top:4px">
+    <label>Current password<input id="pwCur" type="password" autocomplete="current-password" required></label>
+    <label>New password<input id="pwNew" type="password" minlength="6" maxlength="100" autocomplete="new-password" required></label>
+    <div style="display:flex;justify-content:flex-end;margin-top:12px"><button type="submit" class="btn" style="padding:9px 16px;font-size:13px">Change password</button></div>
+  </form>
+  <div class="merr" id="acErr"></div>
+  <div style="display:flex;justify-content:space-between;margin-top:12px"><button type="button" class="btn" id="logoutBtn" style="color:#dc2626">Log out</button><button type="button" class="btn" data-close>Close</button></div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script src="/game.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const f=n=>Math.round(n).toLocaleString("en-US");
+const fmtN=n=>String(n).replace(/\B(?=(\d{3})+(?!\d))/g,",");
+const esc=t=>String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const COLORS=["#111111","#ef4444","#f97316","#eab308","#22c55e","#06b6d4","#3b82f6","#a855f7","#ec4899"];
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+
+async function api(path,body){
+  const opt=body===undefined?{credentials:"same-origin"}:{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)};
+  let res;
+  try{res=await fetch(path,opt)}catch(e){throw new Error("Can't reach the server")}
+  let data={};try{data=await res.json()}catch(e){}
+  if(!res.ok)throw new Error(data.error||("Error "+res.status));
+  return data;
+}
+
+// ---------- STATE ----------
+// Logged in: progress comes from the server. Guest: kept on this device only.
+const GKEY="infiniroll_guest_v1";
+let ME=null;            // {username,motto,emoji,color}
+let S=emptyProgress();
+let busy=false,current=null;
+function emptyProgress(){return{life:0,rolls:0,top:[],seen:{},last:null}}
+function loadGuest(){try{const d=JSON.parse(localStorage.getItem(GKEY));if(d)return Object.assign(emptyProgress(),d)}catch(e){}return emptyProgress()}
+function saveGuest(){if(ME)return;try{localStorage.setItem(GKEY,JSON.stringify(S))}catch(e){}}
+
+// ---------- UI ----------
+function colorize(el,col){el.classList.toggle("rainbow",col==="rainbow");el.style.color=col==="rainbow"?"":col}
+function pctText(p){if(p>0.5){const b=(1-p)*100;return "BOTTOM "+(b<1?"1":String(Math.ceil(b)))+"%"}if(p<0.0001)return "1 IN "+f(Math.round(1/p));const v=p*100;return "TOP "+(v>=1?String(Math.ceil(v)):v>=0.1?v.toFixed(1):v.toFixed(2))+"%"}
+
+function showResult(r,animate){
+  $("num").textContent=fmtN(r.n);
+  const tier=TIERS.find(t=>r.pct<=t[0]);
+  $("tierline").innerHTML=`<span class="tag" id="tierTag">${tier[1]}</span><span class="dot"></span><span id="pctTxt" style="font-weight:700">${pctText(r.pct)}</span>`;
+  colorize($("tierTag"),tier[2]);$("pctTxt").style.color="#d97706";
+  $("ep").textContent=f(r.total)+" EP";
+  const nb=$("numbox");nb.classList.remove("spin");
+  if(animate){nb.classList.remove("pop");void nb.offsetWidth;nb.classList.add("pop")}
+  const strong=r.pct<=0.01;nb.style.borderColor=strong?tier[2]:"#fdba74";nb.style.boxShadow=strong?`0 6px 40px ${tier[2]}55`:"";
+  const s=String(r.n);
+  const list=r.badges.map(id=>BADGES.find(b=>b.id===id)).filter(Boolean).sort((a,b)=>b.ep-a.ep);
+  $("bcount").textContent=`${list.length} badge${list.length>1?"s":""} earned`;
+  $("blist").innerHTML=list.length?list.map((b,i)=>{
+    let m=b.test(s,r.n);if(m===true)m=Array(s.length).fill(1);if(!m)m=[];
+    return `<div class="bcard" style="animation-delay:${Math.min(i*40,400)}ms">
+      <div class="bhead"><span>${b.icon}</span><span class="bname">${b.name}</span><span class="rar" style="color:${b.col}">${b.rar}</span><span class="bep">+${f(b.ep)} EP</span></div>
+      <div class="bdesc">${b.desc} <span style="opacity:.7">· 1 in ${f(1/b.p)}</span></div>
+      <div class="digits">${s.split("").map((c,j)=>`<div class="d ${m[j]===1?'a':m[j]===2?'b':''}">${c}</div>`).join("")}</div></div>`}).join("")
+    :`<div class="empty">No badges… roll again!</div>`;
+}
+function clearResult(){
+  $("num").textContent="?";$("ep").textContent="0 EP";$("blist").innerHTML="";$("bcount").textContent="Make your first roll";
+  $("tierline").innerHTML='<span class="tag" style="color:#aaa">Ready</span><span class="dot"></span><span style="color:var(--dim)">0 to 1,000,000</span>';
+  const nb=$("numbox");nb.style.borderColor="";nb.style.boxShadow="";
+}
+function renderStats(){
+  $("life").textContent=f(S.life);$("rolls").textContent=f(S.rolls);
+  $("collCount").textContent=`${Object.keys(S.seen).length}/${BADGES.length}`;
+}
+function renderColl(){
+  const n=Object.keys(S.seen).length;
+  $("collSub").textContent=`${n} / ${BADGES.length} badges discovered`;
+  $("coll").innerHTML=[...BADGES].sort((a,b)=>a.ep-b.ep).map(b=>{const c=S.seen[b.id];
+    return `<div class="ci ${c?'':'lock'}"><b>${c?b.icon+" "+b.name:"🔒 ???"}</b>${c?b.desc:"Not earned yet."}
+    <div class="meta"><span style="color:${b.col};font-weight:700">${b.rar}</span><span>${c?"×"+f(c):"1/"+f(1/b.p)}</span></div></div>`}).join("");
+}
+function renderAccount(){
+  $("acct").innerHTML=ME
+    ?`<button class="who" id="whoBtn" style="color:${esc(ME.color)}">${esc(ME.username)}</button>`
+    :`<button class="btn" id="loginBtn">Log in</button><button class="btn roll" id="signupBtn" style="padding:7px 12px;font-size:12px">Sign up</button>`;
+  if(ME)$("whoBtn").onclick=openAccount;else{$("loginBtn").onclick=()=>openAuth("login");$("signupBtn").onclick=()=>openAuth("signup")}
+  $("guestNote").innerHTML=ME?"":`Playing as a guest — <a id="gSign">sign up</a> to save your rolls and join the leaderboard.`;
+  const g=$("gSign");if(g)g.onclick=()=>openAuth("signup");
+}
+function renderAll(){renderStats();renderColl();renderAccount();LB.load()}
+function applyAccount(data){
+  ME=data.user||null;
+  S=ME?Object.assign(emptyProgress(),data.progress||{}):loadGuest();
+  current=S.last||null;
+  if(current)showResult(current,false);else clearResult();
+  renderAll();
+}
+
+// ---------- ROLL (the server picks the number) ----------
+async function roll(){
+  if(busy)return;busy=true;$("rollBtn").disabled=true;
+  const nb=$("numbox");nb.classList.add("spin");
+  const req=api("/api/roll",{});
+  let stop=false;
+  (async()=>{for(let i=0;!stop;i++){$("num").textContent=fmtN(Math.floor(Math.random()*1000000));await wait(35+Math.min(i,14)*3)}})();
+  let data;
+  try{[data]=await Promise.all([req,wait(550)])}catch(e){stop=true;nb.classList.remove("spin");if(current)showResult(current,false);else clearResult();toast(e.message);busy=false;$("rollBtn").disabled=false;return}
+  stop=true;await wait(10);
+  const r=data.result;current=r;
+  let fresh=[],record=false;
+  if(data.saved){fresh=data.fresh||[];record=data.record;S=Object.assign(emptyProgress(),data.progress)}
+  else{
+    const prevBest=S.top[0]?.total||0;
+    r.badges.forEach(id=>{if(!S.seen[id])fresh.push(id);S.seen[id]=(S.seen[id]||0)+1});
+    S.rolls++;S.life+=r.total;S.last=r;
+    S.top.push(r);S.top.sort((a,b)=>b.total-a.total);S.top=S.top.slice(0,25);
+    record=r.total>prevBest&&S.rolls>1;saveGuest();
+  }
+  showResult(r,true);renderStats();renderColl();
+  if(record)toast("🏆 New record: "+f(r.total)+" EP");
+  else if(fresh.length)toast("✨ New badge: "+fresh.map(id=>BADGES.find(b=>b.id===id)?.name).join(", "));
+  if($("tab-board").style.display!=="none")LB.load();
+  if(r.pct<=0.001)await cutscene(r);
+  busy=false;$("rollBtn").disabled=false;
+}
+function cutscene(r){return new Promise(res=>{
+  const t=TIERS.find(t=>r.pct<=t[0]),c=$("cut");
+  $("cutTier").textContent=t[1];colorize($("cutTier"),t[2]);
+  $("cutNum").textContent=fmtN(r.n);colorize($("cutNum"),"#fff");
+  $("cutSub").textContent=pctText(r.pct)+" · "+f(r.total)+" EP";
+  c.style.background=`radial-gradient(circle,${t[2]}55,#0c0a09f5 65%)`;c.classList.add("show");
+  const close=()=>{c.classList.remove("show");c.onclick=null;res()};c.onclick=close;
+})}
+function toast(t){const el=$("toast");el.textContent=t;el.classList.add("show");clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove("show"),2200)}
+
+// ---------- LEADERBOARD ----------
+const LB={view:"day",seq:0,
+  async load(){
+    const box=$("lbrows"),meBox=$("lbme"),seq=++this.seq;
+    meBox.innerHTML=ME?`Playing as <b style="color:${esc(ME.color)}">${esc(ME.username)}</b> <button class="btn" id="lbEdit">Edit profile</button>`
+      :`Log in to post your rolls and like other players. <button class="btn roll" id="lbJoin" style="padding:7px 14px;font-size:12px">Sign up</button>`;
+    const b1=$("lbEdit"),b2=$("lbJoin");if(b1)b1.onclick=openAccount;if(b2)b2.onclick=()=>openAuth("signup");
+    let data;
+    try{data=await api("/api/leaderboard?view="+this.view)}catch(e){if(seq===this.seq)box.innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
+    if(seq!==this.seq)return;
+    const rows=data.rows;
+    if(!rows.length){box.innerHTML=`<div class="empty">${this.view==="day"?"Nobody has rolled today yet. Be the first!":"No entries yet."}</div>`;return}
+    const medals=["🥇","🥈","🥉"];
+    box.innerHTML=rows.map((p,i)=>{
+      const col=COLORS.includes(p.color)?p.color:"#111111";
+      const right=this.view==="badges"?`<span class="lnum">${p.badges}</span><span class="lep">/ ${data.total} badges</span>`:`<span class="lnum">${fmtN(p.n)}</span><span class="lep">${f(p.total)} EP</span>`;
+      return `<div class="lrow ${p.me?"me":""}"><span class="lrank ${i<3?"medal":""}">${i<3?medals[i]:"#"+(i+1)}</span>
+        <span class="lname" style="color:${col}">${esc(p.username)}${p.emoji?`<span class="em">${esc(p.emoji)}</span>`:""}</span>
+        ${right}<button class="llike ${p.liked?"on":""}" data-like="${esc(p.username)}" ${p.me?"disabled":""}>${p.likes} ${p.liked?"♥":"♡"}</button>
+        ${p.motto?`<div class="lmotto">${esc(p.motto)}</div>`:""}</div>`}).join("");
+  }
+};
+$("lbrows").addEventListener("click",async e=>{
+  const b=e.target.closest("[data-like]");if(!b)return;
+  if(!ME){openAuth("login");return}
+  try{await api("/api/like/"+encodeURIComponent(b.dataset.like),{});LB.load()}catch(err){toast(err.message)}
+});
+$("lbtabs").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;LB.view=b.dataset.v;[...$("lbtabs").children].forEach(x=>x.classList.toggle("on",x===b));LB.load()});
+
+// ---------- AUTH ----------
+let authMode="login";
+function openAuth(mode){
+  authMode=mode;
+  [...document.querySelectorAll(".atabs button")].forEach(b=>b.classList.toggle("on",b.dataset.m===mode));
+  $("aPass2Wrap").style.display=mode==="signup"?"block":"none";
+  $("aPass").autocomplete=mode==="signup"?"new-password":"current-password";
+  $("aSubmit").textContent=mode==="signup"?"Create account":"Log in";
+  $("aErr").textContent="";$("aPass").value="";$("aPass2").value="";
+  $("authModal").classList.add("show");setTimeout(()=>$("aUser").focus(),50);
+}
+document.querySelectorAll(".atabs button").forEach(b=>b.onclick=()=>openAuth(b.dataset.m));
+$("authForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const username=$("aUser").value.trim(),password=$("aPass").value;
+  if(authMode==="signup"&&password!==$("aPass2").value){$("aErr").textContent="Passwords don't match";return}
+  $("aSubmit").disabled=true;
+  try{
+    const data=await api(authMode==="signup"?"/api/register":"/api/login",{username,password});
+    $("authModal").classList.remove("show");applyAccount(data);
+    toast(authMode==="signup"?"Welcome, "+data.user.username+"!":"Welcome back, "+data.user.username+"!");
+  }catch(err){$("aErr").textContent=err.message}
+  $("aSubmit").disabled=false;
+});
+let pColor=COLORS[0];
+function openAccount(){
+  if(!ME)return;
+  $("acName").textContent=ME.username;$("acName").style.color=ME.color;
+  $("acStats").textContent=`${f(S.rolls)} rolls · ${f(S.life)} EP · ${Object.keys(S.seen).length} badges`;
+  $("pMotto").value=ME.motto||"";$("pEmoji").value=ME.emoji||"";pColor=COLORS.includes(ME.color)?ME.color:COLORS[0];
+  $("pColors").innerHTML=COLORS.map(c=>`<button type="button" data-c="${c}" style="background:${c}" class="${c===pColor?"on":""}"></button>`).join("");
+  $("acErr").textContent="";$("pwCur").value="";$("pwNew").value="";
+  $("acctModal").classList.add("show");
+}
+$("pColors").addEventListener("click",e=>{const b=e.target.closest("[data-c]");if(!b)return;pColor=b.dataset.c;[...$("pColors").children].forEach(x=>x.classList.toggle("on",x===b))});
+$("profForm").addEventListener("submit",async e=>{e.preventDefault();
+  try{const d=await api("/api/profile",{motto:$("pMotto").value,emoji:$("pEmoji").value,color:pColor});ME=d.user;renderAccount();LB.load();$("acctModal").classList.remove("show");toast("Profile saved")}
+  catch(err){$("acErr").textContent=err.message}});
+$("pwForm").addEventListener("submit",async e=>{e.preventDefault();
+  try{await api("/api/password",{current:$("pwCur").value,next:$("pwNew").value});$("pwCur").value="";$("pwNew").value="";toast("Password changed")}
+  catch(err){$("acErr").textContent=err.message}});
+$("logoutBtn").onclick=async()=>{try{await api("/api/logout",{})}catch(e){}$("acctModal").classList.remove("show");applyAccount({user:null});toast("Logged out")};
+document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>b.closest(".modal").classList.remove("show"));
+document.querySelectorAll(".modal").forEach(m=>m.addEventListener("mousedown",e=>{if(e.target===m)m.classList.remove("show")}));
+
+// ---------- NAV / KEYS ----------
+$("rollBtn").onclick=roll;
+$("shareBtn").onclick=async()=>{
+  if(!current){toast("Roll first!");return}
+  const t=TIERS.find(t=>current.pct<=t[0]);
+  const top=current.badges.map(id=>BADGES.find(b=>b.id===id)).filter(Boolean).sort((a,b)=>b.ep-a.ep).slice(0,5).map(b=>b.icon).join("");
+  const txt=`InfiniRoll 🎲 ${current.n}\n${t[1].toUpperCase()} · ${pctText(current.pct)} · ${f(current.total)} EP\n${top}\n${location.origin}`;
+  try{await navigator.clipboard.writeText(txt);toast("Copied to clipboard")}catch(e){toast("Can't copy here")}
+};
+document.querySelectorAll(".lnk").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".lnk").forEach(x=>x.classList.toggle("on",x===b));
+  ["roll","board","coll","rarity"].forEach(t=>$("tab-"+t).style.display=t===b.dataset.tab?(t==="roll"?"flex":"block"):"none");
+  if(b.dataset.tab==="board")LB.load();
+});
+document.addEventListener("keydown",e=>{
+  if(e.target.closest&&e.target.closest("input,textarea,button,.modal"))return;
+  if(document.querySelector(".modal.show"))return;
+  if(e.code==="Space"){e.preventDefault();roll()}
+});
+
+const RT_NUM=[["Trash","#eab308","Bottom 1%"],["Common","#e7e5e4","Bottom 50%"],["Uncommon","#10b981","Top 50-25%"],["Rare","#60a5fa","Top 25-10%"],["Epic","#c084fc","Top 10-5%"],["Anomaly","#f97316","Top 5-1%"],["Mythic","#f87171","Top 1%"]];
+const RT_B=[["Common","#e7e5e4",">10% of rolls"],["Uncommon","#10b981","1-10% of rolls"],["Rare","#60a5fa","0.1-1% of rolls"],["Epic","#c084fc","0.01-0.1% of rolls"],["Anomaly","#f97316","0.001-0.01% of rolls"],["Mythic","#f87171","<0.001% (1 in 100,000+)"]];
+const rtHtml=a=>a.map(([n,c,v])=>`<span class="n" style="color:${c}">${n}</span><span class="v">${v}</span>`).join("");
+$("rtNum").innerHTML=rtHtml(RT_NUM);$("rtBadge").innerHTML=rtHtml(RT_B);
+
+(async()=>{
+  let data={user:null};
+  try{data=await api("/api/me")}catch(e){toast(e.message)}
+  $("calib").style.display="none";$("rollBtn").disabled=false;
+  applyAccount(data);
+})();
+</script>
+</body>
+</html>

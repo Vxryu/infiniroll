@@ -1,0 +1,16 @@
+{
+  "name": "infiniroll",
+  "version": "1.0.0",
+  "description": "Roll a number from 0 to 1,000,000, collect badges and climb the leaderboard.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "pg": "^8.13.1"
+  }
+}
