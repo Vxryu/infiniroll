@@ -2,15 +2,24 @@
 const express = require("express");
 const crypto = require("crypto");
 const path = require("path");
+const fs = require("fs");
 const store = require("./store");
-const game = require("./shared/game");
-
+// Works whether files are in their folders (shared/, public/) or all at the repo root
+const pick = (...c) => c.map((p) => path.join(__dirname, p)).find((p) => fs.existsSync(p));
+const GAME_FILE = pick("shared/game.js", "game.js");
+const INDEX_FILE = pick("public/index.html", "index.html");
+if (!GAME_FILE || !INDEX_FILE) {
+  console.error("Missing file: put game.js (in shared/) and index.html (in public/) in the repo.");
+  process.exit(1);
+}
+const game = require(GAME_FILE);
+ 
 const PORT = process.env.PORT || 3000;
 const PROD = process.env.NODE_ENV === "production";
 const SESSION_DAYS = 30;
 const COOKIE = "ir_sess";
 const COLORS = ["#111111", "#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#3b82f6", "#a855f7", "#ec4899"];
-
+ 
 const app = express();
 app.set("trust proxy", 1); // behind Render / Railway / etc.
 app.disable("x-powered-by");
@@ -21,7 +30,7 @@ app.use((req, res, next) => {
   res.set("X-Frame-Options", "DENY");
   next();
 });
-
+ 
 // ---------- helpers ----------
 const sha256 = (s) => crypto.createHash("sha256").update(s).digest("hex");
 const userKey = (name) => "user:" + String(name).toLowerCase();
@@ -35,7 +44,7 @@ function weekKey() {
   return t.getUTCFullYear() + "-W" + Math.ceil(((t - y) / 864e5 + 1) / 7);
 }
 const scoreOf = (n) => game.evaluate(n).reduce((a, x) => a + x.b.ep, 0);
-
+ 
 function hashPassword(password, salt = crypto.randomBytes(16).toString("hex")) {
   return new Promise((resolve, reject) =>
     crypto.scrypt(password, salt, 64, { N: 16384, r: 8, p: 1 }, (err, key) => (err ? reject(err) : resolve({ salt, hash: key.toString("hex") })))
@@ -46,7 +55,7 @@ async function checkPassword(password, user) {
   const a = Buffer.from(hash, "hex"), b = Buffer.from(user.hash, "hex");
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
-
+ 
 function parseCookies(req) {
   const out = {};
   (req.headers.cookie || "").split(";").forEach((p) => {
@@ -73,7 +82,7 @@ function currentUser(req) {
   if (s.exp < Date.now()) { store.del("sess:" + sha256(token)); return null; }
   return store.get(userKey(s.u)) || null;
 }
-
+ 
 // Simple in-memory rate limiter
 const hits = new Map();
 function limited(key, max, windowMs) {
@@ -84,7 +93,7 @@ function limited(key, max, windowMs) {
   return arr.length > max;
 }
 setInterval(() => { const now = Date.now(); for (const [k, v] of hits) if (!v.some((t) => now - t < 3600e3)) hits.delete(k); }, 600e3).unref();
-
+ 
 // Block cross-site POSTs (CSRF): browsers send Origin on POST
 app.use("/api", (req, res, next) => {
   if (req.method !== "GET") {
@@ -93,13 +102,13 @@ app.use("/api", (req, res, next) => {
   }
   next();
 });
-
+ 
 const publicProfile = (u) => ({ username: u.username, motto: u.motto || "", emoji: u.emoji || "", color: u.color || COLORS[0] });
 const progress = (u) => ({ life: u.life || 0, rolls: u.rolls || 0, seen: u.seen || {}, top: u.top || [], last: u.last || null });
-
+ 
 // ---------- account ----------
 const USERNAME_RE = /^[A-Za-z0-9_]{3,16}$/;
-
+ 
 app.post("/api/register", async (req, res) => {
   const { username, password } = req.body || {};
   if (limited("reg:" + req.ip, 5, 3600e3)) return res.status(429).json({ error: "Too many accounts created. Try again later." });
@@ -113,7 +122,7 @@ app.post("/api/register", async (req, res) => {
   createSession(req, res, username);
   res.json({ user: publicProfile(user), progress: progress(user) });
 });
-
+ 
 app.post("/api/login", async (req, res) => {
   const { username, password } = req.body || {};
   if (typeof username !== "string" || typeof password !== "string") return res.status(400).json({ error: "Missing username or password" });
@@ -126,19 +135,19 @@ app.post("/api/login", async (req, res) => {
   createSession(req, res, user.username);
   res.json({ user: publicProfile(user), progress: progress(user) });
 });
-
+ 
 app.post("/api/logout", (req, res) => {
   const token = parseCookies(req)[COOKIE];
   if (token && /^[a-f0-9]{64}$/.test(token)) store.del("sess:" + sha256(token));
   setSessionCookie(req, res, "", 0);
   res.json({ ok: true });
 });
-
+ 
 app.get("/api/me", (req, res) => {
   const u = currentUser(req);
   res.json(u ? { user: publicProfile(u), progress: progress(u) } : { user: null });
 });
-
+ 
 app.post("/api/profile", (req, res) => {
   const u = currentUser(req);
   if (!u) return res.status(401).json({ error: "Log in first" });
@@ -149,7 +158,7 @@ app.post("/api/profile", (req, res) => {
   store.set(userKey(u.username), u);
   res.json({ user: publicProfile(u) });
 });
-
+ 
 app.post("/api/password", async (req, res) => {
   const u = currentUser(req);
   if (!u) return res.status(401).json({ error: "Log in first" });
@@ -164,7 +173,7 @@ app.post("/api/password", async (req, res) => {
   createSession(req, res, u.username);
   res.json({ ok: true });
 });
-
+ 
 // ---------- rolling (done on the server: no cheating) ----------
 function secureNumber() {
   const r = crypto.randomInt(0, 100000000); // 1 in 100,000,000 steps
@@ -172,7 +181,7 @@ function secureNumber() {
   if (r < 5) return 0;                      // 1 in 25,000,000
   return 1 + crypto.randomInt(0, 999999);   // 1 .. 999,999
 }
-
+ 
 app.post("/api/roll", (req, res) => {
   const u = currentUser(req);
   const who = u ? "u:" + u.username.toLowerCase() : "ip:" + req.ip;
@@ -182,7 +191,7 @@ app.post("/api/roll", (req, res) => {
   const total = ev.reduce((a, x) => a + x.b.ep, 0);
   const result = { n, total, pct: game.topPct(total), badges: ev.map((x) => x.b.id) };
   if (!u) return res.json({ result, saved: false });
-
+ 
   const prevBest = u.top && u.top[0] ? u.top[0].total : 0;
   const fresh = [];
   u.seen = u.seen || {};
@@ -197,7 +206,7 @@ app.post("/api/roll", (req, res) => {
   store.set(userKey(u.username), u);
   res.json({ result, saved: true, fresh, record: total > prevBest && u.rolls > 1, progress: progress(u) });
 });
-
+ 
 // ---------- leaderboard ----------
 app.get("/api/leaderboard", (req, res) => {
   const view = ["day", "week", "all", "badges"].includes(req.query.view) ? req.query.view : "day";
@@ -219,7 +228,7 @@ app.get("/api/leaderboard", (req, res) => {
   else rows = rows.filter((r) => r.n !== null).sort((a, b) => b.total - a.total);
   res.json({ view, total: game.BADGES.length, rows: rows.slice(0, 100) });
 });
-
+ 
 app.post("/api/like/:username", (req, res) => {
   const u = currentUser(req);
   if (!u) return res.status(401).json({ error: "Log in to like" });
@@ -232,14 +241,15 @@ app.post("/api/like/:username", (req, res) => {
   store.set(userKey(u.username), u);
   res.json({ liked: !!u.likes[target] });
 });
-
+ 
 // ---------- static files ----------
-app.get("/game.js", (req, res) => res.sendFile(path.join(__dirname, "shared", "game.js")));
-app.use(express.static(path.join(__dirname, "public")));
-
+app.get("/game.js", (req, res) => res.sendFile(GAME_FILE));
+app.get(["/", "/index.html"], (req, res) => res.sendFile(INDEX_FILE));
+ 
 store.init().then(() => {
   app.listen(PORT, () => console.log(`InfiniRoll running on http://localhost:${PORT}`));
   const shutdown = () => store.flush().finally(() => process.exit(0));
   process.on("SIGTERM", shutdown);
   process.on("SIGINT", shutdown);
 });
+ 
